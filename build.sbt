@@ -10,6 +10,8 @@ crossScalaVersions := Seq("2.10.6", "2.11.8")
 
 scalaVersion := "2.11.8"
 
+autoScalaLibrary := false
+
 javacOptions ++= Seq("-source", "1.7", "-target", "1.7")
 
 parallelExecution in test := false
@@ -17,9 +19,10 @@ parallelExecution in test := false
 fork in test := true
 
 libraryDependencies ++= Seq(
-  "org.apache.spark"           %% "spark-core"            % "2.0.0" % Provided,
-  "org.apache.spark"           %% "spark-sql"             % "2.0.0" % Provided,
+  "org.apache.spark"           %% "spark-core"            % "2.1.0" % Provided,
+  "org.apache.spark"           %% "spark-sql"             % "2.1.0" % Provided,
   "com.aerospike"              %  "aerospike-helper-java" % "1.2.2",
+  "com.aerospike"              %  "aerospike-client"      % "4.1.1",
   "com.typesafe.scala-logging" %% "scala-logging-slf4j"   % "2.1.2",
   "org.scalatest"              %% "scalatest"             % "2.2.1" % Test
 )
