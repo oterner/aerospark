@@ -36,15 +36,15 @@ class AerospikeConfig private(val properties: Map[String, Any]) extends Serializ
   }
 
   def port(): Int = {
-    get(AerospikeConfig.Port).asInstanceOf[Int]
+    get(AerospikeConfig.Port).toString.toInt
   }
 
   def schemaScan(): Int = {
-    get(AerospikeConfig.SchemaScan).asInstanceOf[Int]
+    get(AerospikeConfig.SchemaScan).toString.toInt
   }
 
   def timeOut(): Int = {
-    get(AerospikeConfig.TimeOut).asInstanceOf[Int]
+    get(AerospikeConfig.TimeOut).toString.toInt
   }
   def keyColumn(): String = {
     get(AerospikeConfig.KeyColumn).asInstanceOf[String]

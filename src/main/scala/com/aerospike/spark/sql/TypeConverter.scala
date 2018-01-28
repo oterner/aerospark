@@ -1,7 +1,10 @@
 package com.aerospike.spark.sql
 
+import java.util
+
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
+
 import collection.JavaConverters._
 import com.aerospike.client.Bin
 
@@ -86,9 +89,15 @@ object TypeConverter{
       case _: java.lang.Float => StructField(binName, DoubleType, nullable = true)
       case _: String => StructField(binName, StringType, nullable = true)
       case _: java.util.Map[Object,Object] =>
-        val aKey = valueToSchema((binName, binVal.asInstanceOf[java.util.Map[Object, Object]].asScala.keys.head))
-        val aValue = valueToSchema((binName, binVal.asInstanceOf[java.util.Map[Object, Object]].asScala.values.head))
-        StructField(binName, new MapType(aKey.dataType, aValue.dataType, true), nullable = true)
+        val keysHead = binVal.asInstanceOf[util.Map[Object, Object]].asScala.keys.headOption
+        val valsHead = binVal.asInstanceOf[java.util.Map[Object, Object]].asScala.values.headOption
+        if(keysHead.isDefined && valsHead.isDefined) {
+          val aKey = valueToSchema((binName, binVal.asInstanceOf[util.Map[Object, Object]].asScala.keys.head))
+          val aValue = valueToSchema((binName, binVal.asInstanceOf[java.util.Map[Object, Object]].asScala.values.head))
+          StructField(binName, new MapType(aKey.dataType, aValue.dataType, true), nullable = true)
+        } else {
+          StructField(binName, new MapType(StringType, StringType, true), nullable = true)
+        }
       case _: java.util.List[Object] =>
         val newValue = binVal.asInstanceOf[java.util.List[Object]].get(0)
         val elementStructure = valueToSchema((binName, newValue))

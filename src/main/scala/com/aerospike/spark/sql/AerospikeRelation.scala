@@ -14,19 +14,20 @@ import com.aerospike.client.{AerospikeClient, Value}
 import com.aerospike.client.policy.{ClientPolicy, QueryPolicy}
 import com.aerospike.client.query.Statement
 import com.typesafe.scalalogging.slf4j.LazyLogging
+
 /**
   * This class infers the schema used by the DataFrame
   * and creates an instance of @see com.aerospike.spark.sql.KeyRecordRDD
   */
 class AerospikeRelation(config: AerospikeConfig, userSchema: StructType)(@transient val sqlContext: SQLContext)
-    extends BaseRelation with TableScan with PrunedFilteredScan with LazyLogging with Serializable {
+  extends BaseRelation with TableScan with PrunedFilteredScan with LazyLogging with Serializable {
 
   Value.UseDoubleType = true
   var schemaCache: StructType = _
 
   override def schema: StructType = {
     if (schemaCache == null || schemaCache.isEmpty) {
-//      val client = AerospikeConnection.getClient(config)
+      //      val client = AerospikeConnection.getClient(config)
       val fields = Vector[StructField](
         StructField(config.keyColumn(), StringType, nullable = true),
         StructField(config.digestColumn(), BinaryType, nullable = false),
@@ -38,7 +39,7 @@ class AerospikeRelation(config: AerospikeConfig, userSchema: StructType)(@transi
       val stmt = new Statement()
       stmt.setNamespace(config.get(AerospikeConfig.NameSpace).asInstanceOf[String])
       stmt.setSetName(config.get(AerospikeConfig.SetName).asInstanceOf[String])
-      stmt.setBinNames(config.binColumns().split(","):_*)
+      stmt.setBinNames(config.binColumns().split(","): _*)
 
       val policy = new ClientPolicy()
       policy.timeout = config.timeOut()
@@ -53,15 +54,19 @@ class AerospikeRelation(config: AerospikeConfig, userSchema: StructType)(@transi
 
       val bins: Map[String, StructField] = try {
         val sample = recordSet.take(config.schemaScan())
-        sample.flatMap { keyRecord =>
-          keyRecord.record.bins.map { case (binName, binVal) =>
-            val field = TypeConverter.valueToSchema(binName -> binVal)
-            logger.debug(s"Schema - Bin:$binName, Value:$binVal, Field:$field")
-            binName -> field
-          }
+        sample.flatMap {
+          keyRecord =>
+            keyRecord.record.bins.map {
+              case (binName, binVal) =>
+                val field = TypeConverter.valueToSchema(binName -> binVal)
+                logger.debug(s"Schema - Bin:$binName, Value:$binVal, Field:$field")
+                binName -> field
+            }
         }.toMap
       } catch {
-        case e: Exception => Map.empty[String, StructField]
+        case e: Exception =>
+          println("Failed to get schema" + e.getMessage)
+          Map.empty[String, StructField]
       } finally {
         recordSet.close()
         client.close()
