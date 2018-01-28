@@ -10,7 +10,8 @@ import org.apache.spark.sql.types.StringType
 import org.apache.spark.sql.types.StructField
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.types.IntegerType
-import com.aerospike.client.Value
+import com.aerospike.client.{AerospikeClient, Value}
+import com.aerospike.client.policy.{ClientPolicy, QueryPolicy}
 import com.aerospike.client.query.Statement
 import com.typesafe.scalalogging.slf4j.LazyLogging
 /**
@@ -25,7 +26,7 @@ class AerospikeRelation(config: AerospikeConfig, userSchema: StructType)(@transi
 
   override def schema: StructType = {
     if (schemaCache == null || schemaCache.isEmpty) {
-      val client = AerospikeConnection.getClient(config)
+//      val client = AerospikeConnection.getClient(config)
       val fields = Vector[StructField](
         StructField(config.keyColumn(), StringType, nullable = true),
         StructField(config.digestColumn(), BinaryType, nullable = false),
@@ -37,8 +38,19 @@ class AerospikeRelation(config: AerospikeConfig, userSchema: StructType)(@transi
       val stmt = new Statement()
       stmt.setNamespace(config.get(AerospikeConfig.NameSpace).asInstanceOf[String])
       stmt.setSetName(config.get(AerospikeConfig.SetName).asInstanceOf[String])
+      stmt.setBinNames(config.binColumns().split(","):_*)
 
-      val recordSet = client.query(null, stmt)
+      val policy = new ClientPolicy()
+      policy.timeout = config.timeOut()
+      val seedHost = config.seedHost()
+      val port = config.port()
+      val client = new AerospikeClient(policy, seedHost, port)
+
+      val qp: QueryPolicy = client.queryPolicyDefault
+      qp.maxConcurrentNodes = 1
+      qp.recordQueueSize = 1
+      val recordSet = client.queryNode(qp, stmt, client.getNodes.head)
+
       val bins: Map[String, StructField] = try {
         val sample = recordSet.take(config.schemaScan())
         sample.flatMap { keyRecord =>
@@ -52,6 +64,7 @@ class AerospikeRelation(config: AerospikeConfig, userSchema: StructType)(@transi
         case e: Exception => Map.empty[String, StructField]
       } finally {
         recordSet.close()
+        client.close()
       }
       schemaCache = StructType(fields ++ bins.values)
     }

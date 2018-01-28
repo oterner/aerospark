@@ -66,6 +66,10 @@ class AerospikeConfig private(val properties: Map[String, Any]) extends Serializ
     get(AerospikeConfig.TTLColumn).asInstanceOf[String]
   }
 
+  def binColumns(): String = {
+    get(AerospikeConfig.BinColumns).asInstanceOf[String]
+  }
+
   override def toString: String = {
     val buff = new StringBuffer("[")
     properties.map(f => {
@@ -98,7 +102,9 @@ object AerospikeConfig {
     AerospikeConfig.DigestColumn -> "__digest",
     AerospikeConfig.ExpiryColumn -> "__expiry",
     AerospikeConfig.GenerationColumn -> "__generation",
-    AerospikeConfig.TTLColumn -> "__ttl")
+    AerospikeConfig.TTLColumn -> "__ttl",
+    AerospikeConfig.BinColumns -> "*"
+  )
 
   val SeedHost = "aerospike.seedhost"
   defineProperty(SeedHost, "127.0.0.1")
@@ -147,6 +153,9 @@ object AerospikeConfig {
 
   val TTLColumn = "aerospike.ttlColumn"
   defineProperty(TTLColumn, "__ttl")
+
+  val BinColumns = "aerospike.binNames"
+  defineProperty(BinColumns, "*")
 
   private def defineProperty(key: String, defaultValue: Any) : Unit = {
     val lowerKey = key.toLowerCase()
